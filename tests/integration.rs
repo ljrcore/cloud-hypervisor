@@ -10347,7 +10347,12 @@ mod live_migration {
             .port()
     }
 
-    fn start_live_migration_tcp(src_api_socket: &str, dest_api_socket: &str) -> bool {
+    fn start_live_migration_tcp(
+        src_api_socket: &str,
+        dest_api_socket: &str,
+        downtime: u64,
+        timeout: u64,
+    ) -> bool {
         // Get an available TCP port
         let migration_port = get_available_port();
         let host_ip = "127.0.0.1";
@@ -10374,6 +10379,10 @@ mod live_migration {
                 &format!("--api-socket={}", src_api_socket),
                 "send-migration",
                 &format!("tcp:{}:{}", host_ip, migration_port),
+                "--downtime",
+                &format!("{}", downtime),
+                "--migration-timeout",
+                &format!("{}", timeout),
             ])
             .stdin(Stdio::null())
             .stderr(Stdio::piped())
@@ -10444,6 +10453,8 @@ mod live_migration {
             .output()
             .expect("Expect creating disk image to succeed");
         let pmem_path = String::from("/dev/pmem0");
+        let downtime = 500;
+        let timeout = 100;
 
         // Start the source VM
         let src_vm_path = clh_command("cloud-hypervisor");
@@ -10506,7 +10517,7 @@ mod live_migration {
             }
             // Start TCP live migration
             assert!(
-                start_live_migration_tcp(&src_api_socket, &dest_api_socket),
+                start_live_migration_tcp(&src_api_socket, &dest_api_socket, downtime, timeout),
                 "Unsuccessful command: 'send-migration' or 'receive-migration'."
             );
         });
